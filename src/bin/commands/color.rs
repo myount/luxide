@@ -103,30 +103,38 @@ enum ColorSpec<'a> {
 }
 
 fn parse_lights(values: Option<Values>) -> Option<BitFlags<Lights>> {
-    let lights = values?.collect::<Vec<&str>>();
-
-    if lights.len() == 0 {
+    if values.is_none() {
         None
-    } else if lights.contains(&"all") {
-        Some(Lights::all())
     } else {
-        let mut flags = BitFlags::<Lights>::empty();
+        let lights = values
+            .unwrap()
+            .map(|v| v.to_lowercase())
+            .collect::<Vec<String>>();
 
-        lights.iter().for_each(|l| match l.to_lowercase().as_str() {
-            // "all","flag","back","flag-bottom","flag-middle","flag-top","back-bottom","back-middle","back-top"
-            "all" => flags |= Lights::all(),
-            "f" | "flag" => flags |= Lights::flag(),
-            "b" | "back" => flags |= Lights::back(),
-            "1" | "flag-bottom" => flags |= Lights::FlagBottom,
-            "2" | "flag-middle" => flags |= Lights::FlagMiddle,
-            "3" | "flag-top" => flags |= Lights::FlagTop,
-            "4" | "back-bottom" => flags |= Lights::BackBottom,
-            "5" | "back-middle" => flags |= Lights::BackMiddle,
-            "6" | "back_top" => flags |= Lights::BackTop,
-            _ => (),
-        });
+        if lights.contains(&"all".to_string()) {
+            Some(Lights::all())
+        } else if lights.is_empty() {
+            // Should always be false, but...
+            None
+        } else {
+            let mut flags = BitFlags::<Lights>::empty();
 
-        Some(flags)
+            lights.iter().for_each(|l| match l.to_lowercase().as_str() {
+                // "all","flag","back","flag-bottom","flag-middle","flag-top","back-bottom","back-middle","back-top"
+                "all" => flags |= Lights::all(),
+                "f" | "flag" => flags |= Lights::flag(),
+                "b" | "back" => flags |= Lights::back(),
+                "1" | "flag-bottom" => flags |= Lights::FlagBottom,
+                "2" | "flag-middle" => flags |= Lights::FlagMiddle,
+                "3" | "flag-top" => flags |= Lights::FlagTop,
+                "4" | "back-bottom" => flags |= Lights::BackBottom,
+                "5" | "back-middle" => flags |= Lights::BackMiddle,
+                "6" | "back_top" => flags |= Lights::BackTop,
+                _ => (),
+            });
+
+            Some(flags)
+        }
     }
 }
 
@@ -145,27 +153,28 @@ impl Color {
             // COLOR is provided and thus this should be...
             unreachable!();
         };
+        let lights_value = opts.values_of("LIGHTS");
 
-        // Can't specify a duration with "set simple color".
-        if duration_value != "" {
+        // Can't specify a duration or individual lights with "set simple color".
+        if duration_value != "" || lights_value.is_some() {
+            trace!(
+                "simple color name specified with fade duration or lights - forcing fade command"
+            );
             let color = match color_value {
-                ColorSpec::NamedColor(name) => {
-                    trace!("fade duration specified with simple color name - faking it");
-                    match name.to_lowercase().as_str() {
-                        "red" => Ok(RgbColor::red()),
-                        "green" => Ok(RgbColor::green()),
-                        "blue" => Ok(RgbColor::blue()),
-                        "cyan" => Ok(RgbColor::cyan()),
-                        "magenta" => Ok(RgbColor::magenta()),
-                        "yellow" => Ok(RgbColor::yellow()),
-                        "white" => Ok(RgbColor::white()),
-                        "off" => Ok(RgbColor::off()),
-                        s => {
-                            error!("Unrecognized color name \"{}\"", s);
-                            Err(format!("Invalid color: \"{}\"", s))
-                        }
+                ColorSpec::NamedColor(name) => match name.to_lowercase().as_str() {
+                    "red" => Ok(RgbColor::red()),
+                    "green" => Ok(RgbColor::green()),
+                    "blue" => Ok(RgbColor::blue()),
+                    "cyan" => Ok(RgbColor::cyan()),
+                    "magenta" => Ok(RgbColor::magenta()),
+                    "yellow" => Ok(RgbColor::yellow()),
+                    "white" => Ok(RgbColor::white()),
+                    "off" => Ok(RgbColor::off()),
+                    s => {
+                        error!("Unrecognized color name \"{}\"", s);
+                        Err(format!("Invalid color: \"{}\"", s))
                     }
-                }
+                },
                 ColorSpec::NumericColor(num) => {
                     RgbColor::parse(num).ok_or(format!("Couldn't parse RGB color: \"{}\"", num))
                 }
@@ -173,7 +182,7 @@ impl Color {
 
             trace!("color {:?} is {:?}", color_value, color);
 
-            let lights = parse_lights(opts.values_of("LIGHTS"));
+            let lights = parse_lights(lights_value);
             trace!("lights is {:?}", lights);
 
             let fade_time_value = opts.value_of("DURATION").unwrap();
@@ -181,9 +190,9 @@ impl Color {
                 Ok(t) => t,
                 Err(_) => 0,
             };
-            trace!("fade_time is \"{}\" {:?}", fade_time_value, fade_time);
+            trace!("fade_time is \"{}\" = {:?}", fade_time_value, fade_time);
 
-            luxafor.fade_to_color(color, lights.unwrap_or(BitFlags::empty()), fade_time);
+            luxafor.fade_to_color(color, lights.unwrap_or(BitFlags::all()), fade_time);
         } else {
             let color = match color_value {
                 ColorSpec::NumericColor(_) => unreachable!(),
