@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 "luxafor-usb" = { path = "luxafor-usb" }
+log = "^0.4"
+simplelog = "^0.7"
+clap = "^2.33"
