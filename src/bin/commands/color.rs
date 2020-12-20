@@ -1,4 +1,4 @@
-use clap::{ArgMatches, Values};
+use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand, Values};
 use log::{debug, error, trace};
 use luxafor_usb::device::{BitFlags, Lights, Luxafor, RgbColor, SimpleColor};
 use std::str::FromStr;
@@ -139,6 +139,52 @@ fn parse_lights(values: Option<Values>) -> Option<BitFlags<Lights>> {
 }
 
 impl Color {
+    pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
+        SubCommand::with_name("color")
+            .about("Sets the color of the flag")
+            .arg(Arg::with_name("COLOR")
+                .index(1)
+                .possible_values(&["red", "green", "blue", "cyan", "magenta", "yellow", "white", "off"])
+                .help("One of the eight pre-defined colors.  Either this or --rgb <RGB> is required.")
+            )
+            .arg(
+                Arg::with_name("RGB")
+                    .short("r")
+                    .long("rgb")
+                    .alias("rgb-color")
+                    .empty_values(false)
+                    .help("The RGB color to set (R,G,B decimal, or #RRGGBB or #RGB hex).  Either this or <COLOR> is required.")
+                    .long_help("The RGB color to set, specified in either R,G,B format with R, G, and B being in the range 0-255, or an HTML-style #RRGGBB, or CSS shorthand #RGB, hex color.  #RGB will be expanded to #RRGGBB as in CSS; that is, #b0b => #bb00bb.")
+            )
+            .group(
+                ArgGroup::with_name("colors")
+                    .args(&["COLOR", "RGB"])
+                    .required(true)
+            )
+            .arg(
+                Arg::with_name("DURATION")
+                    .short("f")
+                    .long("fade")
+                    .empty_values(true)
+                    .default_value_if("COLOR", None, "")
+                    .default_value_if("RGB", None, "0")
+                    .help("The duration (0-255) over which to fade to the given color.  Smaller values are faster (0 is instant, and the default).")
+                    .long_help("The duration (0-255) over which to fade to the given color.  Smaller values are faster (0 is instant, and the default).  The precise duration that corresponds to <DURATION> is determined by the hardware, and the same value may produce different real-time durations vary based on the starting and ending colors.")
+            )
+            .arg(
+                Arg::with_name("LIGHTS")
+                    .short("l")
+                    .long("light")
+                    .required(false)
+                    .multiple(true)
+                    .min_values(1)
+                    .max_values(6)
+                    .possible_values(&["all","flag","back","flag-bottom","flag-middle","flag-top","back-bottom","back-middle","back-top","1","2","3","4","5","6"])
+                    .help("The light or lights whose color you wish to set.  Specify once for each light (e.g., -l flag-top -l back-top).  Defaults to \"all\".")
+                    .long_help("The light or lights whose color you wish to set.  Specify once for each light (e.g., -l flag-top -l back-top).  Defaults to \"all\".\nThe special values 'all', 'flag', and 'tab' may be used to set all the lights, only the flag lights, or only the back lights, or an arbitrary combination of other lights may be specified.  In addition, \"f\" and \"b\" may be used as shorthand for \"flag\" and \"back\", and the individual LEDs may be referred to numerically (1-6), with 1 being the bottom flag LED and 4 being the bottom back LED and going up from there.")
+            )
+    }
+
     pub fn exec(opts: &ArgMatches) -> Result<(), String> {
         trace!("executing \"color\" subcommand");
         let luxafor = Luxafor::new()?;
