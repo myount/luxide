@@ -1,102 +1,44 @@
+use crate::commands::util::ColorSpec::{NamedColor, NumericColor};
 use clap::Values;
-use log::{debug, error, trace};
+use either::Either;
+use either::Either::{Left, Right};
+use log::error;
 use luxafor_usb::device::{BitFlags, Lights, RgbColor};
-use std::str::FromStr;
+use std::convert::TryFrom;
 
-pub(crate) trait Parse<T> {
-    fn parse(str: &str) -> Option<T>;
-}
+impl<'a> TryFrom<&'a str> for ColorSpec<'a> {
+    type Error = ();
 
-impl Parse<RgbColor> for RgbColor {
-    fn parse(str: &str) -> Option<RgbColor> {
-        trace!("attempting to parse \"{}\" to RGB color", str);
-
-        if str.starts_with("#") {
-            trace!("found possible hex color");
-
-            // I didn't want to make these mutable, I wanted to just initialize them in the match
-            // below, but rustc is (by design) not clever enough to see that they're only used if
-            // they get initialized.
-            let mut r: u8 = 0;
-            let mut g: u8 = 0;
-            let mut b: u8 = 0;
-
-            let res = match str.len() {
-                4 => {
-                    trace!("found possible CSS shorthand-style color");
-                    r = (u8::from_str_radix(&str[1..2], 16).ok()? * 16)
-                        + u8::from_str_radix(&str[1..2], 16).ok()?;
-                    g = (u8::from_str_radix(&str[2..3], 16).ok()? * 16)
-                        + u8::from_str_radix(&str[2..3], 16).ok()?;
-                    b = (u8::from_str_radix(&str[3..4], 16).ok()? * 16)
-                        + u8::from_str_radix(&str[3..4], 16).ok()?;
-                    Some(())
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        if value.len() > 0 {
+            if value.starts_with("#") {
+                match value.len() {
+                    4 | 7 => Ok(NumericColor(&value)),
+                    _ => Err(()),
                 }
-                7 => {
-                    trace!("found possible HTML color");
-                    r = u8::from_str_radix(&str[1..3], 16).ok()?;
-                    g = u8::from_str_radix(&str[3..5], 16).ok()?;
-                    b = u8::from_str_radix(&str[5..7], 16).ok()?;
-                    Some(())
-                }
-                l => {
-                    trace!(
-                        "\"{}\" is an invalid length ({}) for a valid hex color",
-                        str,
-                        l
-                    );
-                    None
-                }
-            };
-
-            if res.is_some() {
-                let color = Some(RgbColor(r, g, b));
-                debug!("parsed \"{}\" to {:?}", str, color.unwrap());
-                color
+            } else if value.match_indices(",").collect::<Vec<_>>().len() == 2 {
+                Ok(NumericColor(&value))
             } else {
-                debug!("couldn't parse \"{}\" to RgbColor", str);
-                None
+                Ok(NamedColor(&value))
             }
         } else {
-            trace!("not a hex color - attempting to parse as r,g,b");
-            let parts = str.split(',').collect::<Vec<&str>>();
-            if parts.len() != 3 {
-                debug!(
-                    "couldn't parse \"{}\" as RgbColor - {} parts ({})",
-                    str,
-                    if parts.len() < 3 {
-                        "not enough"
-                    } else {
-                        "too many"
-                    },
-                    parts.len()
-                );
-                None
-            } else {
-                let rgb = parts
-                    .iter()
-                    .filter_map(|s| u8::from_str(&s.trim()).ok())
-                    .collect::<Vec<u8>>();
-                if rgb.len() == 3 {
-                    let res = Some(RgbColor(rgb[0], rgb[1], rgb[2]));
-                    debug!("parsed \"{}\" to {:?}", str, res.unwrap());
-                    res
-                } else {
-                    debug!(
-                        "couldn't parse \"{}\" to RgbColor - parsed {} segments, expected 3",
-                        str,
-                        rgb.len()
-                    );
-                    None
-                }
-            }
+            Err(())
         }
     }
 }
 
-pub(crate) fn colorspec_to_rgb(color_spec: &ColorSpec) -> Result<RgbColor, String> {
+pub struct ColorSpecParseError(String);
+impl From<ColorSpecParseError> for String {
+    fn from(e: ColorSpecParseError) -> Self {
+        e.0
+    }
+}
+
+pub(crate) fn colorspec_to_rgb(
+    &color_spec: &Either<&str, &ColorSpec>,
+) -> Result<RgbColor, ColorSpecParseError> {
     match color_spec {
-        ColorSpec::NamedColor(name) => match name.to_lowercase().as_str() {
+        Left(str) => match str.to_lowercase().as_str() {
             "red" => Ok(RgbColor::red()),
             "green" => Ok(RgbColor::green()),
             "blue" => Ok(RgbColor::blue()),
@@ -105,14 +47,23 @@ pub(crate) fn colorspec_to_rgb(color_spec: &ColorSpec) -> Result<RgbColor, Strin
             "yellow" => Ok(RgbColor::yellow()),
             "white" => Ok(RgbColor::white()),
             "off" => Ok(RgbColor::off()),
-            s => {
-                error!("Unrecognized color name \"{}\"", s);
-                Err(format!("Invalid color: \"{}\"", s))
-            }
+            s => match RgbColor::try_from(s) {
+                Ok(color) => Ok(color),
+                Err(e) => Err(ColorSpecParseError(e.to_string())),
+            },
         },
-        ColorSpec::NumericColor(num) => {
-            RgbColor::parse(num).ok_or(format!("Couldn't parse RGB color: \"{}\"", num))
-        }
+        Right(color_spec) => match *color_spec {
+            ColorSpec::NamedColor(name) => match name.to_lowercase().as_str() {
+                s => {
+                    error!("Unrecognized color name \"{}\"", s);
+                    Err(ColorSpecParseError(format!("Invalid color: \"{}\"", s)))
+                }
+            },
+            ColorSpec::NumericColor(num) => match RgbColor::try_from(num) {
+                Ok(color) => Ok(color),
+                Err(e) => Err(ColorSpecParseError(e.to_string())),
+            },
+        },
     }
 }
 

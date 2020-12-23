@@ -1,6 +1,7 @@
 use crate::commands::util;
 use crate::commands::util::ColorSpec;
 use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
+use either::Either::Right;
 use log::{error, trace};
 use luxafor_usb::device::{BitFlags, Luxafor, SimpleColor};
 use std::str::FromStr;
@@ -75,7 +76,7 @@ impl Color {
             trace!(
                 "simple color name specified with fade duration or lights - forcing fade command"
             );
-            let color = util::colorspec_to_rgb(&color_value)?;
+            let color = util::colorspec_to_rgb(&Right(&color_value))?;
             trace!("color {:?} is {:?}", color_value, color);
 
             let lights = util::parse_lights(lights_value);

@@ -1,8 +1,14 @@
 use crate::usb::{LUXAFOR_PID, LUXAFOR_VID};
 pub use enumflags2::BitFlags;
 use hidapi::{HidApi, HidDevice};
-use std::fmt;
-use std::fmt::{Debug, Formatter};
+use log::{debug, trace};
+use std::{
+    convert::TryFrom,
+    fmt,
+    fmt::{Debug, Formatter},
+    str::FromStr,
+};
+use thiserror::Error;
 
 pub struct Luxafor {
     pub(crate) hid_device: HidDevice,
@@ -121,6 +127,113 @@ impl RgbColor {
 
     pub fn off() -> RgbColor {
         RgbColor(0, 0, 0)
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum RgbColorParseError {
+    #[error("The hex color was invalid. Either it was the incorrect length or contained non-hex digits.")]
+    InvalidHexColor(String),
+    #[error("The R,G,B color was invalid. Either it was composed of the wrong number of parts, or contained a value over 255.")]
+    InvalidNumericColor(String),
+}
+
+impl TryFrom<&str> for RgbColor {
+    type Error = RgbColorParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        trace!("attempting to parse \"{}\" to RGB color", value);
+
+        if value.starts_with("#") {
+            trace!("found possible hex color");
+
+            // I didn't want to make these mutable, I wanted to just initialize them in the match
+            // below, but rustc is (by design) not clever enough to see that they're only used if
+            // they get initialized.
+            let mut r: u8 = 0;
+            let mut g: u8 = 0;
+            let mut b: u8 = 0;
+
+            let from_hex = |s: &str| -> Result<u8, RgbColorParseError> {
+                match u8::from_str_radix(s, 16) {
+                    Ok(i) => Ok(i),
+                    Err(e) => Err(RgbColorParseError::InvalidHexColor(e.to_string())),
+                }
+            };
+
+            let res = match value.len() {
+                4 => {
+                    trace!("found possible CSS shorthand-style color");
+                    r = from_hex(&value[1..2])? * 16 + from_hex(&value[1..2])?;
+                    g = from_hex(&value[2..3])? * 16 + from_hex(&value[2..3])?;
+                    b = from_hex(&value[3..4])? * 16 + from_hex(&value[3..4])?;
+                    Ok(())
+                }
+                7 => {
+                    trace!("found possible HTML color");
+                    r = from_hex(&value[1..3])?;
+                    g = from_hex(&value[3..5])?;
+                    b = from_hex(&value[5..7])?;
+                    Ok(())
+                }
+                l => {
+                    let msg = format!("Invalid length for a hex color ({})", l);
+
+                    trace!("{}", msg);
+                    Err(msg)
+                }
+            };
+
+            if res.is_ok() {
+                let color = RgbColor(r, g, b);
+                debug!("parsed \"{}\" to {:?}", value, color);
+                Ok(color)
+            } else {
+                debug!("couldn't parse \"{}\" to RgbColor", value);
+                Err(RgbColorParseError::InvalidHexColor(res.unwrap_err()))
+            }
+        } else {
+            let from_dec = |s: &str| -> Result<u8, RgbColorParseError> {
+                match u8::from_str(s) {
+                    Ok(i) => Ok(i),
+                    Err(e) => Err(RgbColorParseError::InvalidNumericColor(e.to_string())),
+                }
+            };
+
+            trace!("not a hex color - attempting to parse as r,g,b");
+            let parts = value.split(',').collect::<Vec<&str>>();
+            if parts.len() != 3 {
+                let msg = format!(
+                    "{} parts ({})",
+                    if parts.len() < 3 {
+                        "not enough"
+                    } else {
+                        "too many"
+                    },
+                    parts.len()
+                );
+                debug!("couldn't parse \"{}\" as r,g,b: {}", value, msg);
+                Err(RgbColorParseError::InvalidNumericColor(msg))
+            } else {
+                let rgb = parts
+                    .iter()
+                    .filter_map(|s| from_dec(&s.trim()).ok())
+                    .collect::<Vec<u8>>();
+                if rgb.len() == 3 {
+                    let res = RgbColor(rgb[0], rgb[1], rgb[2]);
+                    debug!("parsed \"{}\" to {:?}", value, res);
+                    Ok(res)
+                } else {
+                    let msg = format!(
+                        "couldn't parse \"{}\" to RgbColor - parsed {} segments, expected 3",
+                        value,
+                        rgb.len()
+                    );
+                    debug!("{}", msg);
+                    Err(RgbColorParseError::InvalidNumericColor(msg))
+                }
+            }
+        }
     }
 }
 
