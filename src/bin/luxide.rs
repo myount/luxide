@@ -4,7 +4,7 @@ use clap::{App, Arg};
 use log::error;
 use simplelog::*;
 
-use commands::color::Color;
+use commands::{color::Color, wave::Wave};
 
 fn main() {
     let opts = App::new("Luxide")
@@ -19,6 +19,7 @@ fn main() {
                 .help("Increase verbosity (-v prints info; -vv prints debug output; -vvv prints trace output)"),
         )
         .subcommand(Color::subcommand())
+        .subcommand(Wave::subcommand())
         .get_matches();
 
     TermLogger::init(
@@ -41,6 +42,10 @@ fn main() {
 
     match opts.subcommand() {
         ("color", Some(opts)) => match Color::exec(opts) {
+            Ok(_) => (),
+            Err(e) => error!("{}", e),
+        },
+        ("wave", Some(opts)) => match Wave::exec(opts) {
             Ok(_) => (),
             Err(e) => error!("{}", e),
         },
