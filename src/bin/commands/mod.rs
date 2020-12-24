@@ -19,4 +19,5 @@ mod util;
 
 pub mod color;
 pub mod pattern;
+pub mod strobe;
 pub mod wave;
