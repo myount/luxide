@@ -27,6 +27,7 @@ pub struct Wave {}
 impl Wave {
     pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
         SubCommand::with_name("wave")
+            .about("Animates lights in a wave pattern")
             .arg(
                 Arg::with_name("WAVE-TYPE")
                     // .long("wave")

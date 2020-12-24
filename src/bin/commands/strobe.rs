@@ -27,6 +27,7 @@ pub struct Strobe {}
 impl Strobe {
     pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
         SubCommand::with_name("strobe")
+            .about("Strobes lights")
             .arg(
                 Arg::with_name("COLOR")
                     .required(true)

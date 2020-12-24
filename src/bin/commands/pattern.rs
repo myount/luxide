@@ -26,6 +26,7 @@ pub struct Pattern {}
 impl Pattern {
     pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
         SubCommand::with_name("pattern")
+            .about("Displays one of a few built-in patterns")
             .arg(
                 Arg::with_name("PATTERN")
                     .required(true)
