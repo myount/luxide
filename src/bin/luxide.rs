@@ -21,6 +21,7 @@ use clap::{App, Arg};
 use log::error;
 use simplelog::*;
 
+use crate::commands::off::Off;
 use commands::{color::Color, pattern::Pattern, strobe::Strobe, wave::Wave};
 
 fn main() {
@@ -39,6 +40,7 @@ fn main() {
         .subcommand(Wave::subcommand())
         .subcommand(Pattern::subcommand())
         .subcommand(Strobe::subcommand())
+        .subcommand(Off::subcommand())
         .get_matches();
 
     TermLogger::init(
@@ -73,6 +75,10 @@ fn main() {
             Err(e) => error!("{}", e),
         },
         ("strobe", Some(opts)) => match Strobe::exec(opts) {
+            Ok(_) => (),
+            Err(e) => error!("{}", e),
+        },
+        ("off", _) => match Off::exec() {
             Ok(_) => (),
             Err(e) => error!("{}", e),
         },

@@ -15,10 +15,19 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-mod util;
+use clap::{App, SubCommand};
+use luxafor_usb::device::{Luxafor, SimpleColor};
 
-pub mod color;
-pub mod off;
-pub mod pattern;
-pub mod strobe;
-pub mod wave;
+pub struct Off {}
+
+impl Off {
+    pub fn subcommand<'a, 'b>() -> App<'a, 'b> {
+        SubCommand::with_name("off").about("Shorthand for `luxide color off`")
+    }
+
+    pub fn exec() -> Result<(), String> {
+        let luxafor = Luxafor::new()?;
+
+        Ok(luxafor.set_simple_color(SimpleColor::Off))
+    }
+}
