@@ -35,8 +35,8 @@ pub struct Luxafor {
 #[repr(u8)]
 pub(crate) enum Target {
     All = 0xFF,
-    Back = 'A' as u8,
-    Tab = 'B' as u8,
+    Back = 'B' as u8,
+    Tab = 'A' as u8,
     TabBottomLed = 1,
     TabMiddleLed = 2,
     TabTopLed = 3,
