@@ -1,6 +1,8 @@
 use crate::commands::morse;
-use crate::commands::morse::morse_table::GapType::{Letter, Symbol, Word};
-use crate::commands::morse::morse_table::Morsel::{Dash, Dot, Gap};
+use crate::commands::morse::morse_table::{
+    GapType::{Letter, Symbol, Word},
+    Morsel::{Dash, Dot, Gap},
+};
 
 #[test]
 fn word_to_morse() {

@@ -15,8 +15,7 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-use crate::commands::util;
-use crate::commands::util::ColorSpec;
+use crate::commands::{util, util::ColorSpec};
 use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
 use either::Either::Right;
 use log::{error, trace};

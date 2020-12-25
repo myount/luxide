@@ -21,8 +21,9 @@ use clap::{App, Arg};
 use log::error;
 use simplelog::*;
 
-use crate::commands::off::Off;
-use commands::{color::Color, morse::Morse, pattern::Pattern, strobe::Strobe, wave::Wave};
+use commands::{
+    color::Color, morse::Morse, off::Off, pattern::Pattern, strobe::Strobe, wave::Wave,
+};
 
 fn main() {
     let opts = App::new("Luxide")

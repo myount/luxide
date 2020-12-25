@@ -17,13 +17,13 @@
 
 use crate::commands::util::ColorSpec::{NamedColor, NumericColor};
 use clap::Values;
-use either::Either;
-use either::Either::{Left, Right};
+use either::{
+    Either,
+    Either::{Left, Right},
+};
 use log::error;
 use luxafor_usb::device::{BitFlags, Lights, RgbColor};
-use std::convert::TryFrom;
-use std::num::NonZeroU64;
-use std::str::FromStr;
+use std::{convert::TryFrom, num::NonZeroU64, str::FromStr};
 
 impl<'a> TryFrom<&'a str> for ColorSpec<'a> {
     type Error = ();
