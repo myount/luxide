@@ -71,7 +71,7 @@ impl Wave {
         let luxafor = Luxafor::new()?;
 
         let color_value = opts.value_of("COLOR").unwrap();
-        let color = util::colorspec_to_rgb(&Left(color_value))?;
+        let color = util::colorspec_to_rgb(Left(color_value))?;
         trace!("color is {:?}", color);
 
         let wave_type_num = u8::from_str(opts.value_of("WAVE-TYPE").unwrap())

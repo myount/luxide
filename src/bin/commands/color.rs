@@ -92,7 +92,7 @@ impl Color {
             trace!(
                 "simple color name specified with fade duration or lights - forcing fade command"
             );
-            let color = util::colorspec_to_rgb(&Right(&color_value))?;
+            let color = util::colorspec_to_rgb(Right(&color_value))?;
             trace!("color {:?} is {:?}", color_value, color);
 
             let lights = util::parse_lights(lights_value);

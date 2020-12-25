@@ -72,7 +72,7 @@ impl Strobe {
         let luxafor = Luxafor::new()?;
 
         let color_value = opts.value_of("COLOR").unwrap();
-        let color = util::colorspec_to_rgb(&Left(color_value))?;
+        let color = util::colorspec_to_rgb(Left(color_value))?;
         trace!("color is {:?}", color);
 
         let lights_value = opts.values_of("LIGHTS");

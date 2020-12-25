@@ -54,7 +54,7 @@ impl From<ColorSpecParseError> for String {
 }
 
 pub(crate) fn colorspec_to_rgb(
-    &color_spec: &Either<&str, &ColorSpec>,
+    color_spec: Either<&str, &ColorSpec>,
 ) -> Result<RgbColor, ColorSpecParseError> {
     match color_spec {
         Left(str) => match str.to_lowercase().as_str() {
