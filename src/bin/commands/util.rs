@@ -22,6 +22,7 @@ use either::Either::{Left, Right};
 use log::error;
 use luxafor_usb::device::{BitFlags, Lights, RgbColor};
 use std::convert::TryFrom;
+use std::num::NonZeroU64;
 use std::str::FromStr;
 
 impl<'a> TryFrom<&'a str> for ColorSpec<'a> {
@@ -129,6 +130,13 @@ pub(crate) enum ColorSpec<'a> {
 
 pub fn validate_string_is_u8(str: String) -> Result<(), String> {
     match u8::from_str(&str) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(String::from("Value was out of range or not an integer.")),
+    }
+}
+
+pub fn validate_string_is_nonzero_u64(str: String) -> Result<(), String> {
+    match NonZeroU64::from_str(&str) {
         Ok(_) => Ok(()),
         Err(_) => Err(String::from("Value was out of range or not an integer.")),
     }

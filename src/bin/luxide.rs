@@ -22,7 +22,7 @@ use log::error;
 use simplelog::*;
 
 use crate::commands::off::Off;
-use commands::{color::Color, pattern::Pattern, strobe::Strobe, wave::Wave};
+use commands::{color::Color, morse::Morse, pattern::Pattern, strobe::Strobe, wave::Wave};
 
 fn main() {
     let opts = App::new("Luxide")
@@ -41,15 +41,15 @@ fn main() {
         .subcommand(Pattern::subcommand())
         .subcommand(Strobe::subcommand())
         .subcommand(Off::subcommand())
+        .subcommand(Morse::subcommand())
         .get_matches();
 
-    TermLogger::init(
+    let _ = TermLogger::init(
         match opts.occurrences_of("verbose") {
             0 => LevelFilter::Error,
             1 => LevelFilter::Info,
             2 => LevelFilter::Debug,
-            3 => LevelFilter::Trace,
-            _ => LevelFilter::Trace,
+            3 | _ => LevelFilter::Trace,
         },
         ConfigBuilder::new()
             .set_location_level(LevelFilter::Off)
@@ -58,8 +58,7 @@ fn main() {
             .set_target_level(LevelFilter::Off)
             .build(),
         TerminalMode::Mixed,
-    )
-    .unwrap();
+    );
 
     match opts.subcommand() {
         ("color", Some(opts)) => match Color::exec(opts) {
@@ -75,6 +74,10 @@ fn main() {
             Err(e) => error!("{}", e),
         },
         ("strobe", Some(opts)) => match Strobe::exec(opts) {
+            Ok(_) => (),
+            Err(e) => error!("{}", e),
+        },
+        ("morse", Some(opts)) => match Morse::exec(opts) {
             Ok(_) => (),
             Err(e) => error!("{}", e),
         },

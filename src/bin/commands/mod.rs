@@ -18,6 +18,7 @@
 mod util;
 
 pub mod color;
+pub mod morse;
 pub mod off;
 pub mod pattern;
 pub mod strobe;
